@@ -39,7 +39,7 @@ class RandomBackground(object):
         random_bg = random_bg[min_x:min_x + cropped_width, min_y:min_y + cropped_height, :]
 
         # Resize image to the same size of the original image
-        random_bg = cv2.resize(random_bg, dsize=(img.shape[0], img.shape[1]), interpolation=cv2.INTER_CUBIC)
+        random_bg = cv2.resize(random_bg, dsize=(img.shape[1], img.shape[0]), interpolation=cv2.INTER_CUBIC)
 
         # Merge gauge and background according to the alpha channels of the original image
         img = np.where((img[:, :, 3] == 255)[..., None], img[:, :, :3], random_bg)
