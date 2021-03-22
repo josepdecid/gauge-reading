@@ -132,3 +132,7 @@ datasets
 logs
 venv
 .idea/*
+<<<<<<< HEAD
+=======
+*/__pycache/*
+>>>>>>> Improve gitignore
