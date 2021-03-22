@@ -3,27 +3,35 @@ from glob import glob
 from logging import warning
 
 import cv2
-import matplotlib.pyplot as plt
 import numpy as np
 from PIL import Image
 
 
 class RandomBackground(object):
-    def __init__(self, folder_path: str):
+    """
+
+    """
+
+    def __init__(self, folder_path: str, min_cropping_percentage: int = 0.25):
         background_files = glob(os.path.join(folder_path, '*'))
+        assert os.path.exists(folder_path), 'The specified background folder does not exist.'
+        assert len(background_files), 'There are no available backgrounds in the specified folder.'
         self.__backgrounds = list(filter(lambda x: x.split('.')[-1] in ['png', 'jpg'], background_files))
+
+        assert 0 <= min_cropping_percentage <= 1, 'The cropping percentage must be in range [0, 1].'
+        self.__min_cropping_percentage = min_cropping_percentage
 
     def __call__(self, img, annotations):
         if img.shape[2] == 3:
             warning('Image does not have an alpha channel, skipping this step.')
-            return img, annotations
+            return img[:, :, :3], annotations
 
         # Select a random background
         random_idx = np.random.randint(0, len(self.__backgrounds))
         random_bg = np.array(Image.open(self.__backgrounds[random_idx]))
 
         # Crop the background randomly
-        cropping_percentage = np.random.random()
+        cropping_percentage = np.random.uniform(low=self.__min_cropping_percentage, high=1.0)
         cropped_width = int(random_bg.shape[0] * cropping_percentage)
         cropped_height = int(random_bg.shape[1] * cropping_percentage)
         min_x = np.random.randint(0, random_bg.shape[0] - cropped_width)
@@ -37,17 +45,3 @@ class RandomBackground(object):
         img = np.where((img[:, :, 3] == 255)[..., None], img[:, :, :3], random_bg)
 
         return img, annotations
-
-
-if __name__ == '__main__':
-    def main():
-        rb = RandomBackground('backgrounds')
-
-        img = Image.open('C:\\Users\\jdeci\\Projects\\GaugeReading\\datasets\\training\\Data\\SC_1585054719260.png')
-        img = np.array(img)
-        img, _ = rb(img, {})
-        plt.imshow(img)
-        plt.show()
-
-
-    main()

@@ -128,11 +128,9 @@ dmypy.json
 # Pyre type checker
 .pyre/
 checkpoints
+backgrounds
 datasets
 logs
 venv
 .idea/*
-<<<<<<< HEAD
-=======
 */__pycache/*
->>>>>>> Improve gitignore
