@@ -25,6 +25,11 @@ $ python src/test.py datasets/validation --checkpoint_path checkpoints/1/9.pt --
 
 The core code is separated into different packages according to the given functionalities.
 
+- Managers
+- Misc
+- Models
+- Transforms
+
 ## Thinking process
 
 Some of the thinking process belongs to the Code Structure section, as defining the program flow and components already requires from a thinking process.
