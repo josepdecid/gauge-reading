@@ -1,7 +1,8 @@
 import argparse
 
-from torchvision.models.detection import fasterrcnn_resnet50_fpn
-from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
+import torch
+from torch import nn
+from torchvision import models
 
 from managers.trainer import Trainer
 
@@ -11,9 +12,14 @@ if __name__ == '__main__':
     parser.add_argument('checkpoint_path', type=str, default=None, help='Dataset folder root path')
     args = parser.parse_args()
 
+    """
     model = fasterrcnn_resnet50_fpn(pretrained=True)
     in_features = model.roi_heads.box_predictor.cls_score.in_features
     model.roi_heads.box_predictor = FastRCNNPredictor(in_features, 2)
+    """
+
+    model = models.resnet18(pretrained=True)
+    model.fc = nn.Linear(512, 4)
 
     trainer = Trainer(
         model=model,

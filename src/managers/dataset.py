@@ -3,6 +3,7 @@ import os
 from glob import glob
 from typing import Callable, Optional, Tuple, List
 
+import numpy as np
 import torch
 from PIL import Image
 from torch.utils.data import Dataset
@@ -20,12 +21,13 @@ class GaugeDataset(Dataset):
 
     def __getitem__(self, idx: int) -> Tuple[torch.Tensor, dict]:
         img = Image.open(self.__data[idx])
+        img = np.array(img)
 
         with open(self.__annotations[idx], mode='r') as json_file:
             annotations = json.load(json_file)
 
+        """
         num_objs = len(annotations['annotation'])
-
         boxes = []
         area = []
         for i in range(num_objs):
@@ -41,11 +43,12 @@ class GaugeDataset(Dataset):
             'image_id': annotations['image']['id'],
             'prediction': annotations['annotation'][0]['class_values'][0]
         }
+        """
 
         if self.__transform is not None:
-            img, target = self.__transform(img, target)
+            img, annotations = self.__transform(img, annotations)
 
-        return img, target
+        return img, annotations
 
     def __make_dataset(self) -> Tuple[List[str], List[str]]:
         data_files = sorted(glob(os.path.join(self.__root, 'Data', '*')))

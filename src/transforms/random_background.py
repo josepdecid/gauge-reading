@@ -42,6 +42,6 @@ class RandomBackground(object):
         random_bg = cv2.resize(random_bg, dsize=(img.shape[1], img.shape[0]), interpolation=cv2.INTER_CUBIC)
 
         # Merge gauge and background according to the alpha channels of the original image
-        img = np.where((img[:, :, 3] == 255)[..., None], img[:, :, :3], random_bg)
+        img = np.where((img[:, :, 3] > 100)[..., None], img[:, :, :3], random_bg)
 
         return img, annotations

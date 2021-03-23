@@ -7,12 +7,16 @@ import torch
 from torch import optim, nn
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
+from torchvision.utils import make_grid
 from tqdm import tqdm
 
+from managers.criteria import IntersectionOverUnionLoss
 from managers.dataset import GaugeDataset
+from misc.utils import display_predictions
+from transforms.random_background import RandomBackground
 from transforms.random_gauge_offset import RandomGaugeOffset
-from transforms.utils import Compose
-from misc.utils import collate_fn, display_predictions
+from transforms.resize_image import ResizeImage
+from transforms.utils import Compose, ToTensor
 
 
 class Trainer:
@@ -32,35 +36,31 @@ class Trainer:
         for epoch in range(1, epochs):
             # Training
             self.__model.train()
-            for images, targets in tqdm(self.__training_loader):
-                images, targets = self.__send_data_to_device(images, targets)
-
-                self.__optimizer.zero_grad()
-                loss_dict = self.__model(images, targets)
-                losses = sum(loss for loss in loss_dict.values())
-                losses.backward()
-                self.__optimizer.step()
-
-                self.__writer.add_scalar('Loss/Train', losses.item(), idx)
+            for batch_idx, (images, targets) in enumerate(tqdm(self.__training_loader)):
+                loss, results = self.__step(images, targets, log_images=batch_idx == 0)
+                self.__writer.add_scalar('Loss/Train', loss.item(), idx)
                 idx += 1
 
+                if results is not None:
+                    results = make_grid(results)
+                    self.__writer.add_image('Training results', results, epoch)
+
             # Validation
-            # self.__model.eval()
+            self.__model.eval()
             with torch.no_grad():
                 losses = []
+                validation_results = []
+
                 for images, targets in tqdm(self.__validation_loader):
-                    images, targets = self.__send_data_to_device(images, targets)
+                    loss, batch_results = self.__step(images, targets, evaluation=True, log_images=True)
+                    losses.append(loss)
+                    validation_results.append(batch_results)
 
-                    loss_dict = self.__model(images, targets)
-                    losses.append(loss_dict)
-
-                loss_metrics = {}
-                for k in losses[0].keys():
-                    key_loss = sum(map(lambda x: x[k].item(), losses)) / len(losses)
-                    self.__writer.add_scalar(f'Loss/Validation/{k}', key_loss, epoch)
-                    loss_metrics[k] = sum(map(lambda x: x[k].item(), losses)) / len(losses)
-
-                self.__save_checkpoint(epoch, loss_metrics)
+                loss = sum(losses) / len(losses)
+                validation_results = make_grid(torch.cat(validation_results))
+                self.__writer.add_scalar('Loss/Validation', loss.item(), epoch)
+                self.__writer.add_image('Validation results', validation_results, epoch)
+                self.__save_checkpoint(epoch, {'loss': loss.item()})
 
     def predict(self):
         self.__setup_datasets(evaluation=True)
@@ -69,15 +69,34 @@ class Trainer:
         with torch.no_grad():
             for images, targets in tqdm(self.__validation_loader):
                 images, targets = self.__send_data_to_device(images, targets)
-                predictions = self.__model(images, targets)
-                display_predictions(images, predictions)
+                predictions = self.__model(images)
+                display_predictions(images, predictions, targets['bbox'])
+
+    def __step(self, images, targets, evaluation=False, log_images=False):
+        images, targets = self.__send_data_to_device(images, targets)
+
+        predictions = self.__model(images)
+        loss = self.__criterion(predictions, targets['bbox'])
+        loss = torch.abs(predictions - targets['bbox']).mean()
+
+        if not evaluation:
+            loss.backward()
+            self.__optimizer.step()
+            self.__optimizer.zero_grad()
+
+        if log_images:
+            results = display_predictions(images, predictions, targets=targets['bbox'], show=False)
+        else:
+            results = None
+
+        return loss, results
 
     def __send_data_to_device(self, images, targets):
-        images = list(image.to(self.__device) for image in images)
-        targets = [{
-            k: v.to(self.__device) if torch.is_tensor(v) else v
-            for k, v in t.items()
-        } for t in targets]
+        images = images.to(self.__device)
+        targets = {
+            'bbox': torch.stack(targets['bbox']).transpose(0, 1).to(self.__device),
+            'target': targets['target'].to(self.__device)
+        }
 
         return images, targets
 
@@ -96,20 +115,26 @@ class Trainer:
             json.dump(self.__metrics, json_file)
 
     def __setup_datasets(self, evaluation=False):
-        transforms = Compose([RandomGaugeOffset()])
+        train_transforms = Compose([
+            ResizeImage(resize_factor=0.25),
+            RandomGaugeOffset(),
+            RandomBackground('backgrounds'),
+            ToTensor()
+        ])
+
+        validation_transforms = Compose([ToTensor()])
 
         if not evaluation:
-            self.__training_dataset = GaugeDataset(os.path.join(self.__root_path, 'training'), transforms)
-            self.__training_loader = DataLoader(self.__training_dataset, collate_fn=collate_fn,
+            self.__training_dataset = GaugeDataset(os.path.join(self.__root_path, 'training'), train_transforms)
+            self.__training_loader = DataLoader(self.__training_dataset,
                                                 batch_size=self.__batch_size, shuffle=True, num_workers=4)
 
             validation_path = os.path.join(self.__root_path, 'validation')
         else:
             validation_path = self.__root_path
 
-        self.__validation_dataset = GaugeDataset(validation_path, transforms)
-        self.__validation_loader = DataLoader(self.__validation_dataset, collate_fn=collate_fn,
-                                              batch_size=self.__batch_size, num_workers=4)
+        self.__validation_dataset = GaugeDataset(validation_path, validation_transforms)
+        self.__validation_loader = DataLoader(self.__validation_dataset, num_workers=4)
 
     def __setup_model(self, checkpoint_path: Optional[str]):
         if torch.cuda.is_available():
@@ -124,14 +149,16 @@ class Trainer:
             self.__model.load_state_dict(torch.load(checkpoint_path))
 
         self.__optimizer = optim.Adam(self.__model.parameters())
-        self.__criterion = nn.MSELoss()
+        self.__criterion = IntersectionOverUnionLoss()
 
     def __setup_logger(self):
         logs_base_path = 'logs'
         logs_prefix = 'Run_'
 
         if os.path.exists(logs_base_path):
-            sub_logs = sorted(glob(os.path.join(logs_base_path, '*')))
+            sub_logs = sorted(glob(os.path.join(logs_base_path, '*')),
+                              key=lambda x: int(x.split(os.sep)[-1][len(logs_prefix):]))
+
             last_log_idx = 0 if len(sub_logs) == 0 else int(sub_logs[-1].split(os.sep)[-1][len(logs_prefix):])
         else:
             last_log_idx = 0
