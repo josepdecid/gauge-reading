@@ -86,6 +86,43 @@ with the sampled image. The previous example images applied to some gauges from 
 **TODO IMAGES**
 
 ### Model Architectures
+As for the model architectures I have considered testing different typically used architectures,
+such as models from the R-CNN family, YOLO, SSD, RefineNet... These models require a decent GPU to train them and I did not dispose of the necessary time and hardware resources to experiment with all of them,
+or build a cloud pipeline system to experiment with online clusters such as Google Cloud Compute.
 
+Another important decision to make is about whether to tackle the problem as a single prediction problem or to decompose it 
+between bounding box prediction and then a regression to read the gauge value from the region inside the predicted bounding box.
+I have decided to use it two-task sequential prediction, a decision that goes hand ind hand with the models that I have experimented with,
+a small ResNet18 for each sub-task, which allows me to run the training with a decent batch size and training time.
+With more resources it would be nice to experiment with this decision if we use detection specific architectures.
 
+I have also assumed that each image contains a single gauge, so it is not necessary to use techniques that solve the multiple object detection problem,
+so I can use a "vanilla"-CNN approach instead.
+
+I have also considered using some classical Computer Vision techniques for the regression problem using OpenCV,
+with circle detection to extract the gauge sphere and angles, line detection to look for the needle and contour detection to find the lines that go from the minimum to the maximum value.
+By computing the angle between the needle and the circle with respect to the axis points, it is possible to extract the normalized value in range [0, 1] of the gauge.
+However, I have assumed that the goal of this exercise is to show my PyTorch skills, so I have decided to stick with a DL model. 
+ 
 #### Loss Functions
+The loss function for the regression problem to predict the normalized gauge value is the traditional one for regression problems, the Mean Square Error loss, which decreases the closer we get to the target value.
+
+For the bounding box prediction task we have to build a more sophisticated method. Considering that the network outputs four values `(min_x, min_y, width, height)`, the simpler idea is to go also with a MSE loss function. However, this do not represent well the idea of what we want to obtain.
+
+Therefore, I have designed a custom loss function, which computes the Intersection over Union ratio between two bounding boxes. This loss function is in range `[0, 1]`, where two boxes that do not intersect at all have an score of zero, while a perfect matching has an score of one.
+As PyTorch minimizes the loss function during the optimization and, in this case, we want to increase the value of the IoU, we simply return the negative value of it, and our goal is to obtain a score of -1.
+The following image illustrates the idea implemented in `managers/criteria.py`.
+
+![iou](./readme_images/iou.png) 
+
+In the following image we can see the the IoU during the training process (which is approaching to -1), that I have monitored using Tensorboard. 
+![loss](./readme_images/tensorboard_iou.jpeg)
+
+### TODO:
+There are a bunch of ideas that I had in mind to to but I wasn't unable to due to the reduced amount of time that I had available to work with this exercise. I quickly list them below:
+- Experiment with different model architectures and sub-tasks
+    - Evaluate performance in terms of trade-off between precision and time
+        - E.g. Faster-RNN may have a greater performance while MobileNet is more suitable for real-time applications.
+    - Train independently the bounding box prediction task and value prediction or do it all together as a combined loss.
+    - Alternative backbone models, not only the smaller resnet.
+- Further data augmentation techniques with simulation environments.
