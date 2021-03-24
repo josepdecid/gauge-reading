@@ -1,5 +1,6 @@
 import argparse
 
+import numpy as np
 import torch
 
 from managers.trainer import Trainer
@@ -8,6 +9,8 @@ from models.bbox import resnet18_for_bbox, resnet18_for_regression
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Train a CNN to solve the Gauge Reading')
     parser.add_argument('data_root_path', type=str, help='Dataset folder root path')
+    parser.add_argument('--bbox_checkpoint', type=str, default=None, help='Checkpoint for the Bbox model')
+    parser.add_argument('--value_checkpoint', type=str, default=None, help='Checkpoint for the value model')
     parser.add_argument('--epochs', type=int, default=100, help='#Epochs')
     parser.add_argument('--bs', type=int, default=16, help='Batch size')
     parser.add_argument('--seed', type=int, help='Fixed seed to ensure reproducibility')
@@ -15,6 +18,7 @@ if __name__ == '__main__':
 
     if args.seed is not None:
         torch.manual_seed(args.seed)
+        np.random.seed(args.seed)
 
     bbox_model = resnet18_for_bbox(pretrained=True)
     value_model = resnet18_for_regression(pretrained=True)
@@ -23,10 +27,12 @@ if __name__ == '__main__':
         bbox_model=bbox_model,
         value_model=value_model,
         root_path=args.data_root_path,
-        batch_size=16
+        batch_size=args.bs,
+        bbox_checkpoint=args.bbox_checkpoint,
+        value_checkpoint=args.value_checkpoint
     )
 
-    trainer.train(epochs=500)
+    trainer.train(epochs=args.epochs)
 
     """
     # Other possible models to try

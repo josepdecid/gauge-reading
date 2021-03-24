@@ -41,6 +41,7 @@ class Trainer:
         for epoch in range(1, epochs):
             # Training
             self.__bbox_model.train()
+            self.__value_model.train()
             for batch_idx, (images, targets) in enumerate(tqdm(self.__training_loader, desc=f'E-{epoch}', ncols=100)):
                 bbox_loss, value_loss, _ = self.__step(images, targets)
                 self.__writer.add_scalar('IntersectionOverUnion/Train', -bbox_loss.item(), idx)
@@ -49,6 +50,7 @@ class Trainer:
 
             # Validation
             self.__bbox_model.eval()
+            self.__value_model.eval()
             with torch.no_grad():
                 bbox_losses = []
                 value_losses = []
@@ -78,12 +80,15 @@ class Trainer:
     def predict(self):
         self.__setup_datasets(evaluation=True)
         self.__bbox_model.eval()
+        self.__value_model.eval()
 
         with torch.no_grad():
             for images, targets in tqdm(self.__validation_loader):
                 images, targets = self.__send_data_to_device(images, targets)
-                predictions = self.__bbox_model(images)
-                display_predictions(images, predictions, targets['bbox'])
+                bbox_predictions = self.__bbox_model(images)
+                value_predictions = self.__value_model(images)
+
+                display_predictions(images, bbox_predictions, targets, value_predictions)
 
     def __step(self, images, targets, evaluation=False, log_images=False):
         images, targets = self.__send_data_to_device(images, targets)
@@ -97,7 +102,7 @@ class Trainer:
             self.__bbox_optimizer.zero_grad()
 
         if log_images:
-            results = display_predictions(images, predictions, targets=targets['bbox'], show=False)
+            results = display_predictions(images, predictions, targets=targets, show=False)
         else:
             results = None
 
@@ -125,8 +130,11 @@ class Trainer:
         if not os.path.exists(base_path):
             os.makedirs(base_path)
 
-        checkpoint_path = os.path.join(base_path, f'{epoch}.pt')
+        checkpoint_path = os.path.join(base_path, f'{epoch}_bbox.pt')
         torch.save(self.__bbox_model.state_dict(), checkpoint_path)
+
+        checkpoint_path = os.path.join(base_path, f'{epoch}_value.pt')
+        torch.save(self.__value_model.state_dict(), checkpoint_path)
 
         metrics_path = os.path.join(base_path, 'metrics.json')
         self.__metrics[epoch] = loss_metrics
@@ -202,3 +210,4 @@ class Trainer:
 
         self.__log_id = last_log_idx + 1
         self.__writer = SummaryWriter(log_dir=os.path.join(logs_base_path, f'{logs_prefix}{self.__log_id}'))
+        print(f'Running experiment {self.__log_id}')

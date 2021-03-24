@@ -10,26 +10,29 @@ from matplotlib import patches
 from transforms.utils import UnNormalize
 
 
-def display_predictions(images, predictions, targets: Optional, show=True):
+def display_predictions(images, bbox_preds, targets: Optional, value_preds: Optional = None, show=True):
     results = []
     unnormalizer = UnNormalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
 
-    for idx, (img, pred) in enumerate(zip(images, predictions)):
-        img, pred = unnormalizer(img, pred)
+    for idx, (img, bbox_pred) in enumerate(zip(images, bbox_preds)):
+        img, bbox_pred = unnormalizer(img, bbox_pred)
         img = img.permute(1, 2, 0).cpu().detach().numpy()
 
         f, ax = plt.subplots()
         ax.imshow(img)
 
-        rect = patches.Rectangle((pred[0], pred[1]), pred[2], pred[3],
+        rect = patches.Rectangle((bbox_pred[0], bbox_pred[1]), bbox_pred[2], bbox_pred[3],
                                  linewidth=1, edgecolor='red', facecolor='none')
         ax.add_patch(rect)
 
         if targets is not None:
-            target = targets[idx].cpu().detach().numpy()
-            rect = patches.Rectangle((target[0], target[1]), target[2], target[3],
-                                     linewidth=1, edgecolor='green', facecolor='none')
-            ax.add_patch(rect)
+            if 'bbox' in targets:
+                target = targets['bbox'][idx].cpu().detach().numpy()
+                rect = patches.Rectangle((target[0], target[1]), target[2], target[3],
+                                         linewidth=1, edgecolor='green', facecolor='none')
+                ax.add_patch(rect)
+            if 'target' in targets and value_preds is not None:
+                ax.set_title(f'{value_preds[idx].item()} - {targets["target"][idx]}')
 
         if show:
             plt.show()
