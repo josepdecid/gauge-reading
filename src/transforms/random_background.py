@@ -9,7 +9,12 @@ from PIL import Image
 
 class RandomBackground(object):
     """
-
+    With a probability `background_img_prob`, it selects a random image to use as a background from the `folder_path`.
+    Otherwise, it creates a random single-color image by sampling uniformly the three color components.
+    The selected image is cropped by a random factor between `min_cropping_factor` and 1.
+    It extracts the Gauge from an image with an alpha channel, separating the foreground and the background.
+    Then, it merges gauge and background according to the alpha channels of the original image.
+    The returned image loses the alpha channel, becoming a RGB image.
     """
 
     def __init__(self, folder_path: str, min_cropping_factor: int = 0.25, background_img_prob: int = 0.9):

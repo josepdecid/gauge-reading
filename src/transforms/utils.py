@@ -3,6 +3,10 @@ import torch
 import torchvision
 
 
+##
+# Generic torchvision-like transform functions adapted to work with extra annotations parameter
+##
+
 class Compose(object):
     def __init__(self, transforms):
         self.transforms = transforms

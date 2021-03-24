@@ -3,6 +3,8 @@ import numpy as np
 
 
 class ResizeImage(object):
+    """Resize an image by a given factor. It also recalculates the bounding box positions accordingly."""
+
     def __init__(self, resize_factor: float):
         self.__resize_factor = resize_factor
 
