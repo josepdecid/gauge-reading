@@ -3,9 +3,9 @@ import numpy as np
 
 
 class RandomGaugeOffset(object):
-    def __init__(self, min_cropping_percentage: int = 0.25, max_cropping_percentage: int = 1.5):
-        self.__min_cropping_percentage = min_cropping_percentage
-        self.__max_cropping_percentage = max_cropping_percentage
+    def __init__(self, min_cropping_factor: int = 0.25, max_cropping_factor: int = 1.5):
+        self.__min_cropping_factor = min_cropping_factor
+        self.__max_cropping_factor = max_cropping_factor
 
     def __call__(self, img: np.array, annotations: dict):
         gauge_img = np.where(img[:, :, 3] == 255)
@@ -14,7 +14,7 @@ class RandomGaugeOffset(object):
         gauge_img = img[min_x:max_x, min_y:max_y].copy()
 
         # Resize the gauge
-        cropping_percentage = np.random.uniform(low=self.__min_cropping_percentage, high=self.__max_cropping_percentage)
+        cropping_percentage = np.random.uniform(low=self.__min_cropping_factor, high=self.__max_cropping_factor)
         cropped_x = min(int(gauge_img.shape[0] * cropping_percentage), img.shape[0] - 1)
         cropped_y = min(int(gauge_img.shape[1] * cropping_percentage), img.shape[1] - 1)
         gauge_img = cv2.resize(gauge_img, dsize=(cropped_y, cropped_x), interpolation=cv2.INTER_CUBIC)
