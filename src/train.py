@@ -4,7 +4,7 @@ import numpy as np
 import torch
 
 from managers.trainer import Trainer
-from models.bbox import resnet18_for_bbox, resnet18_for_regression
+from models.model_helpers import resnet18_for_bbox, resnet18_for_regression
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Train a CNN to solve the Gauge Reading')
