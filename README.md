@@ -75,15 +75,15 @@ I have thought about possible places where we can find a gauge, so I have extrac
 
 Here we have some of the example retrieved images:
 
-**TODO IMAGES**
+![backgrounds](./readme_images/backgrounds.png) 
 
 This step randomly samples one of these downloaded images and applies some random cropping to it between `min_cropping_factor` and `1`,
 to increase the diversity of the resulting data even if we use the same image as the background.
 
 Then, we differentiate the foreground and the background form the gauge image using the alpha channel, substituting transparent background
-with the sampled image. The previous example images applied to some gauges from the data look like the following:
+with the sampled image. The previous example images applied to some gauges from the data look like the following (also applying the `Random Gauge Offset` step):
 
-**TODO IMAGES**
+![backgrounds_gauge](./readme_images/backgrounds_gauge.png) 
 
 ### Model Architectures
 As for the model architectures I have considered testing different typically used architectures,
