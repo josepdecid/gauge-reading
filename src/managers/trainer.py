@@ -13,7 +13,7 @@ from tqdm import tqdm
 
 from managers.criteria import IntersectionOverUnionLoss
 from managers.dataset import GaugeDataset
-from misc.utils import display_predictions
+from misc.utils import display_predictions, crop_images_with_bbox
 from transforms.random_background import RandomBackground
 from transforms.random_gauge_offset import RandomGaugeOffset
 from transforms.resize_image import ResizeImage
@@ -111,9 +111,10 @@ class Trainer:
 
         # TODO: Crop images with bounding boxes
         if self.__teacher_forcing:
-            pass
+            images = crop_images_with_bbox(images, targets['bbox'])
         else:
-            pass
+            images = crop_images_with_bbox(images, predictions)
+        images = images.to(self.__device)
 
         # Gauge value reading
         predictions = self.__value_model(images)

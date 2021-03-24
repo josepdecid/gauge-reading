@@ -10,6 +10,28 @@ from matplotlib import patches
 from transforms.utils import UnNormalize
 
 
+def crop_images_with_bbox(images, bbox):
+    max_width = int(max(bbox[:, 3] * images.size(2)).item())
+    max_height = int(max(bbox[:, 3] * images.size(3)).item())
+    cropped_images = []
+
+    for i in range(images.size(0)):
+        coords = (bbox[i].cpu().numpy() * np.tile(images[i].size()[1:], 2)).astype(int).tolist()
+        cropped_image = images[i].cpu().permute(1, 2, 0).numpy()
+
+        cropped_image = cropped_image[coords[0]:coords[0] + coords[2], coords[1]:coords[1] + coords[3], :]
+        cropped_image = cv2.resize(cropped_image, (max_width, max_height), interpolation=cv2.INTER_CUBIC)
+
+        plt.imshow(cropped_image)
+        plt.show()
+
+        cropped_image = torch.from_numpy(cropped_image).permute(2, 0, 1)
+
+        cropped_images.append(cropped_image)
+
+    return torch.stack(cropped_images)
+
+
 def display_predictions(images, bbox_preds, targets: Optional, value_preds: Optional = None, show=True):
     results = []
     unnormalizer = UnNormalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
