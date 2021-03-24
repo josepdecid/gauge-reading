@@ -16,17 +16,14 @@ def crop_images_with_bbox(images, bbox):
     cropped_images = []
 
     for i in range(images.size(0)):
+        # Cast to numpy
         coords = (bbox[i].cpu().numpy() * np.tile(images[i].size()[1:], 2)).astype(int).tolist()
         cropped_image = images[i].cpu().permute(1, 2, 0).numpy()
-
-        cropped_image = cropped_image[coords[0]:coords[0] + coords[2], coords[1]:coords[1] + coords[3], :]
+        # Crop image and resize to stack it later in the same batch
+        cropped_image = cropped_image[coords[1]:coords[1] + coords[3], coords[0]:coords[0] + coords[2], :]
         cropped_image = cv2.resize(cropped_image, (max_width, max_height), interpolation=cv2.INTER_CUBIC)
-
-        plt.imshow(cropped_image)
-        plt.show()
-
+        # Reconvert to a tensor
         cropped_image = torch.from_numpy(cropped_image).permute(2, 0, 1)
-
         cropped_images.append(cropped_image)
 
     return torch.stack(cropped_images)
