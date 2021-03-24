@@ -3,7 +3,7 @@ import argparse
 import torch
 
 from managers.trainer import Trainer
-from models.bbox import resnet18_for_bbox
+from models.bbox import resnet18_for_bbox, resnet18_for_regression
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Train a CNN to solve the Gauge Reading')
@@ -16,7 +16,21 @@ if __name__ == '__main__':
     if args.seed is not None:
         torch.manual_seed(args.seed)
 
+    bbox_model = resnet18_for_bbox(pretrained=True)
+    value_model = resnet18_for_regression(pretrained=True)
+
+    trainer = Trainer(
+        bbox_model=bbox_model,
+        value_model=value_model,
+        root_path=args.data_root_path,
+        batch_size=16
+    )
+
+    trainer.train(epochs=500)
+
     """
+    # Other possible models to try
+    
     backbone = mobilenet_v2(pretrained=True).features
     backbone.out_channels = 1280
     anchor_generator = AnchorGenerator(sizes=((32, 64, 128, 256, 512),), aspect_ratios=((0.5, 1.0, 2.0),))
@@ -27,13 +41,3 @@ if __name__ == '__main__':
     in_features = model.roi_heads.box_predictor.cls_score.in_features
     model.roi_heads.box_predictor = FastRCNNPredictor(in_features, 2)
     """
-
-    model = resnet18_for_bbox()
-
-    trainer = Trainer(
-        model=model,
-        root_path=args.data_root_path,
-        batch_size=16
-    )
-
-    trainer.train(epochs=500)

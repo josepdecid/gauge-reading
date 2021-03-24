@@ -10,3 +10,13 @@ def resnet18_for_bbox(pretrained=False):
     )
 
     return model
+
+
+def resnet18_for_regression(pretrained=False):
+    model = models.resnet18(pretrained=pretrained)
+    model.fc = nn.Sequential(
+        nn.Linear(512, 1),
+        nn.Sigmoid()
+    )
+
+    return model
