@@ -14,12 +14,12 @@ class IntersectionOverUnionLoss:
         area_b = torch.abs(b[:, 2] * b[:, 3])
 
         union = area_a + area_b - intersection
-        iou = - (intersection / union)
+        iou = -(intersection / union)
 
-        if self.__reduction == 'sum':
-            return iou.sum()
-        else:
+        if self.__reduction == 'mean':
             return iou.mean()
+        else:
+            return iou.sum()
 
     @staticmethod
     def __intersection__(a, b):
@@ -32,14 +32,3 @@ class IntersectionOverUnionLoss:
         d_x = torch.clamp(torch.min(max_x, dim=0).values - torch.max(min_x, dim=0).values, min=0)
         d_y = torch.clamp(torch.min(max_y, dim=0).values - torch.max(min_y, dim=0).values, min=0)
         return d_x * d_y
-
-
-if __name__ == '__main__':
-    t = torch.tensor([
-        [0., 0., 0., 0.]
-    ])
-
-    t2 = torch.tensor([
-        [115.6413, 48.2138, 123.8269, 119.9166]
-    ])
-    print(IntersectionOverUnionLoss()(t, t2))

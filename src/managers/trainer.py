@@ -36,14 +36,10 @@ class Trainer:
         for epoch in range(1, epochs):
             # Training
             self.__model.train()
-            for batch_idx, (images, targets) in enumerate(tqdm(self.__training_loader)):
-                loss, results = self.__step(images, targets)
+            for batch_idx, (images, targets) in enumerate(tqdm(self.__training_loader, desc=f'E-{epoch}', ncols=100)):
+                loss, _ = self.__step(images, targets)
                 self.__writer.add_scalar('Loss/Train', loss.item(), idx)
                 idx += 1
-
-                if results is not None:
-                    results = make_grid(results)
-                    self.__writer.add_image('Training results', results, epoch)
 
             # Validation
             self.__model.eval()
@@ -51,7 +47,7 @@ class Trainer:
                 losses = []
                 validation_results = []
 
-                for images, targets in tqdm(self.__validation_loader):
+                for images, targets in tqdm(self.__validation_loader, desc=f'Validation', ncols=100):
                     loss, batch_results = self.__step(images, targets, evaluation=True, log_images=True)
                     losses.append(loss)
                     validation_results.append(batch_results)
@@ -61,6 +57,8 @@ class Trainer:
                 self.__writer.add_scalar('Loss/Validation', loss.item(), epoch)
                 self.__writer.add_image('Validation results', validation_results, epoch)
                 self.__save_checkpoint(epoch, {'loss': loss.item()})
+
+                self.__scheduler.step(loss)
 
     def predict(self):
         self.__setup_datasets(evaluation=True)
@@ -77,7 +75,6 @@ class Trainer:
 
         predictions = self.__model(images)
         loss = self.__criterion(predictions, targets['bbox'])
-        # loss = torch.abs(predictions - targets['bbox']).mean()
 
         if not evaluation:
             loss.backward()
@@ -153,6 +150,7 @@ class Trainer:
             self.__model.load_state_dict(torch.load(checkpoint_path))
 
         self.__optimizer = optim.Adam(self.__model.parameters())
+        self.__scheduler = optim.lr_scheduler.ReduceLROnPlateau(self.__optimizer)
         self.__criterion = IntersectionOverUnionLoss()
 
     def __setup_logger(self):
