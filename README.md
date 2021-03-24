@@ -122,6 +122,11 @@ The following image illustrates the idea implemented in `managers/criteria.py`.
 In the following image we can see the the IoU during the training process (which is approaching to -1), that I have monitored using Tensorboard. 
 ![loss](./readme_images/tensorboard_iou.jpeg)
 
+We can also compare the MSE loss for the regression task. We can compare both teacher forcing method (blue) and without it (orange).
+As expected the second one has a much worse performance, as the first model is not able to generate proper bounding boxes during the first epochs.
+
+![loss_2](./readme_images/loss_mse.PNG)
+
 ### TODO:
 There are a bunch of ideas that I had in mind to to but I wasn't unable to due to the reduced amount of time that I had available to work with this exercise. I quickly list them below:
 - Experiment with different model architectures and sub-tasks

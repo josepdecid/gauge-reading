@@ -109,11 +109,10 @@ class Trainer:
         else:
             results = None
 
-        # TODO: Crop images with bounding boxes
         if self.__teacher_forcing:
             images = crop_images_with_bbox(images, targets['bbox'])
         else:
-            images = crop_images_with_bbox(images, predictions)
+            images = crop_images_with_bbox(images, predictions.detach())
         images = images.to(self.__device)
 
         # Gauge value reading
