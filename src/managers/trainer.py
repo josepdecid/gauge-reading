@@ -22,13 +22,16 @@ from transforms.utils import Compose, ToTensor, Normalize
 
 class Trainer:
     def __init__(self, bbox_model: nn.Module, value_model: nn.Module, root_path: str, batch_size: int,
-                 bbox_checkpoint: Optional[str] = None, value_checkpoint: Optional[str] = None):
+                 bbox_checkpoint: Optional[str] = None, value_checkpoint: Optional[str] = None,
+                 teacher_forcing=True):
 
         self.__bbox_model = bbox_model
         self.__value_model = value_model
 
         self.__root_path = root_path
         self.__batch_size = batch_size
+        self.__teacher_forcing = teacher_forcing
+
         self.__metrics = {}
 
         self.__setup_model(bbox_checkpoint, value_checkpoint)
@@ -105,6 +108,12 @@ class Trainer:
             results = display_predictions(images, predictions, targets=targets, show=False)
         else:
             results = None
+
+        # TODO: Crop images with bounding boxes
+        if self.__teacher_forcing:
+            pass
+        else:
+            pass
 
         # Gauge value reading
         predictions = self.__value_model(images)
