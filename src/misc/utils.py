@@ -7,19 +7,19 @@ import numpy as np
 import torch
 from matplotlib import patches
 
+from transforms.utils import UnNormalize
+
 
 def display_predictions(images, predictions, targets: Optional, show=True):
     results = []
+    unnormalizer = UnNormalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
 
-    if targets is not None:
-        targets
-
-    for idx, (image, pred) in enumerate(zip(images, predictions)):
-        image = image.permute(1, 2, 0).cpu().detach().numpy()
-        pred = pred.cpu().detach().numpy()
+    for idx, (img, pred) in enumerate(zip(images, predictions)):
+        img, pred = unnormalizer(img, pred)
+        img = img.permute(1, 2, 0).cpu().detach().numpy()
 
         f, ax = plt.subplots()
-        ax.imshow(image)
+        ax.imshow(img)
 
         rect = patches.Rectangle((pred[0], pred[1]), pred[2], pred[3],
                                  linewidth=1, edgecolor='red', facecolor='none')
@@ -34,7 +34,6 @@ def display_predictions(images, predictions, targets: Optional, show=True):
         if show:
             plt.show()
 
-        # result = np.fromstring(f.canvas.tostring_rgb(), dtype=np.uint8, sep='')
         result = get_img_from_fig(f)
         result = (torch.from_numpy(result) / 255.0).permute(2, 0, 1)
         results.append(result)

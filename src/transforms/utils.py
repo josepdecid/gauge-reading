@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+import torchvision
 
 
 class Compose(object):
@@ -23,3 +24,28 @@ class ToTensor(object):
         }
 
         return img, annotations
+
+
+class Normalize(object):
+    def __init__(self, mean, std):
+        self.__normalize = torchvision.transforms.Normalize(mean, std)
+
+    def __call__(self, img: torch.FloatTensor, annotations: dict):
+        img = self.__normalize(img)
+        annotations['bbox'] = (np.array(annotations['bbox']) / torch.tensor(img.size()[1:]).repeat(2)).tolist()
+        return img, annotations
+
+
+class UnNormalize(object):
+    def __init__(self, mean, std):
+        self.__mean = mean
+        self.__std = std
+
+    def __call__(self, img: torch.FloatTensor, predictions: torch.FloatTensor):
+        for t, m, s in zip(img, self.__mean, self.__std):
+            t.mul_(s).add_(m)
+
+        predictions = predictions.cpu().detach().numpy()
+        predictions = (predictions * np.tile(img.size()[1:], 2)).astype(int).tolist()
+
+        return img, predictions

@@ -1,5 +1,4 @@
 import torch
-from torch.nn import MSELoss
 
 
 class IntersectionOverUnionLoss:
@@ -7,13 +6,14 @@ class IntersectionOverUnionLoss:
         assert reduction in ['sum', 'mean']
         self.__reduction = reduction
 
-    def __call__(self, box_x, box_y):
-        area_x = box_x[:, 2] * box_x[:, 3]
-        area_y = box_y[:, 2] * box_y[:, 3]
+    def __call__(self, a, b):
+        intersection = IntersectionOverUnionLoss.__intersection__(a, b)
 
-        intersection = IntersectionOverUnionLoss.__intersection__(box_x, box_y)
+        # Area of boxes W * H
+        area_a = torch.abs(a[:, 2] * a[:, 3])
+        area_b = torch.abs(b[:, 2] * b[:, 3])
 
-        union = area_x + area_y - intersection
+        union = area_a + area_b - intersection
         iou = - (intersection / union)
 
         if self.__reduction == 'sum':
@@ -22,7 +22,24 @@ class IntersectionOverUnionLoss:
             return iou.mean()
 
     @staticmethod
-    def __intersection__(x, y):
-        d_x = torch.min((x[:, 0] + x[:, 2]) - (y[:, 0] + y[:, 2])) - torch.max(x[:, 0] - y[:, 0])
-        d_y = torch.min((x[:, 1] + x[:, 3]) - (y[:, 1] + y[:, 3])) - torch.max(x[:, 1] - y[:, 1])
-        return torch.clamp(d_x * d_y, min=0)
+    def __intersection__(a, b):
+        min_x = torch.stack([a[:, 0], b[:, 0]])
+        max_x = torch.stack([a[:, 0] + a[:, 2], b[:, 0] + b[:, 2]])
+
+        min_y = torch.stack([a[:, 1], b[:, 1]])
+        max_y = torch.stack([a[:, 1] + a[:, 3], b[:, 1] + b[:, 3]])
+
+        d_x = torch.clamp(torch.min(max_x, dim=0).values - torch.max(min_x, dim=0).values, min=0)
+        d_y = torch.clamp(torch.min(max_y, dim=0).values - torch.max(min_y, dim=0).values, min=0)
+        return d_x * d_y
+
+
+if __name__ == '__main__':
+    t = torch.tensor([
+        [0., 0., 0., 0.]
+    ])
+
+    t2 = torch.tensor([
+        [115.6413, 48.2138, 123.8269, 119.9166]
+    ])
+    print(IntersectionOverUnionLoss()(t, t2))

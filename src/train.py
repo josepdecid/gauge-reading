@@ -1,10 +1,9 @@
 import argparse
 
 import torch
-from torch import nn
-from torchvision import models
 
 from managers.trainer import Trainer
+from models.bbox import resnet18_for_bbox
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Train a CNN to solve the Gauge Reading')
@@ -29,8 +28,7 @@ if __name__ == '__main__':
     model.roi_heads.box_predictor = FastRCNNPredictor(in_features, 2)
     """
 
-    model = models.resnet18(pretrained=True)
-    model.fc = nn.Linear(512, 4)
+    model = resnet18_for_bbox()
 
     trainer = Trainer(
         model=model,

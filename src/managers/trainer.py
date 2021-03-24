@@ -16,7 +16,7 @@ from misc.utils import display_predictions
 from transforms.random_background import RandomBackground
 from transforms.random_gauge_offset import RandomGaugeOffset
 from transforms.resize_image import ResizeImage
-from transforms.utils import Compose, ToTensor
+from transforms.utils import Compose, ToTensor, Normalize
 
 
 class Trainer:
@@ -37,7 +37,7 @@ class Trainer:
             # Training
             self.__model.train()
             for batch_idx, (images, targets) in enumerate(tqdm(self.__training_loader)):
-                loss, results = self.__step(images, targets, log_images=batch_idx == 0)
+                loss, results = self.__step(images, targets)
                 self.__writer.add_scalar('Loss/Train', loss.item(), idx)
                 idx += 1
 
@@ -77,7 +77,7 @@ class Trainer:
 
         predictions = self.__model(images)
         loss = self.__criterion(predictions, targets['bbox'])
-        loss = torch.abs(predictions - targets['bbox']).mean()
+        # loss = torch.abs(predictions - targets['bbox']).mean()
 
         if not evaluation:
             loss.backward()
@@ -119,10 +119,14 @@ class Trainer:
             ResizeImage(resize_factor=0.25),
             RandomGaugeOffset(),
             RandomBackground('backgrounds'),
-            ToTensor()
+            ToTensor(),
+            Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
         ])
 
-        validation_transforms = Compose([ToTensor()])
+        validation_transforms = Compose([
+            ToTensor(),
+            Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
+        ])
 
         if not evaluation:
             self.__training_dataset = GaugeDataset(os.path.join(self.__root_path, 'training'), train_transforms)

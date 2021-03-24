@@ -12,14 +12,17 @@ class RandomBackground(object):
 
     """
 
-    def __init__(self, folder_path: str, min_cropping_percentage: int = 0.25):
+    def __init__(self, folder_path: str, min_cropping_factor: int = 0.25, background_img_prob: int = 0.9):
         background_files = glob(os.path.join(folder_path, '*'))
         assert os.path.exists(folder_path), 'The specified background folder does not exist.'
         assert len(background_files), 'There are no available backgrounds in the specified folder.'
         self.__backgrounds = list(filter(lambda x: x.split('.')[-1] in ['png', 'jpg'], background_files))
 
-        assert 0 <= min_cropping_percentage <= 1, 'The cropping percentage must be in range [0, 1].'
-        self.__min_cropping_percentage = min_cropping_percentage
+        assert 0 <= min_cropping_factor <= 1, 'The background image probability must be in range [0, 1].'
+        self.__min_cropping_percentage = min_cropping_factor
+
+        assert 0 <= background_img_prob <= 1, 'The cropping percentage must be in range [0, 1].'
+        self.__background_img_prob = background_img_prob
 
     def __call__(self, img, annotations):
         if img.shape[2] == 3:
@@ -27,8 +30,14 @@ class RandomBackground(object):
             return img[:, :, :3], annotations
 
         # Select a random background
-        random_idx = np.random.randint(0, len(self.__backgrounds))
-        random_bg = np.array(Image.open(self.__backgrounds[random_idx]))
+        if np.random.random() < self.__background_img_prob:
+            random_idx = np.random.randint(0, len(self.__backgrounds))
+            random_bg = np.array(Image.open(self.__backgrounds[random_idx]))
+        else:
+            r_component = np.ones(img.shape[:2]) * np.random.randint(0, 255)
+            g_component = np.ones(img.shape[:2]) * np.random.randint(0, 255)
+            b_component = np.ones(img.shape[:2]) * np.random.randint(0, 255)
+            random_bg = np.stack([r_component, g_component, b_component], axis=2)
 
         # Crop the background randomly
         cropping_percentage = np.random.uniform(low=self.__min_cropping_percentage, high=1.0)
