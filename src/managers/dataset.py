@@ -26,25 +26,6 @@ class GaugeDataset(Dataset):
         with open(self.__annotations[idx], mode='r') as json_file:
             annotations = json.load(json_file)
 
-        """
-        num_objs = len(annotations['annotation'])
-        boxes = []
-        area = []
-        for i in range(num_objs):
-            bbox = annotations['annotation'][i]['bbox']
-            boxes.append([bbox[0], bbox[1], bbox[0] + bbox[2], bbox[1] + bbox[3]])
-            area.append(annotations['annotation'][i]['area'])
-
-        target = {
-            'boxes': torch.as_tensor(boxes, dtype=torch.float32),
-            'area': torch.as_tensor(area, dtype=torch.float32),
-            'labels': torch.ones((num_objs,), dtype=torch.int64),
-            'is_crowd': torch.zeros((num_objs,), dtype=torch.int64),
-            'image_id': annotations['image']['id'],
-            'prediction': annotations['annotation'][0]['class_values'][0]
-        }
-        """
-
         if self.__transform is not None:
             img, annotations = self.__transform(img, annotations)
 
@@ -65,3 +46,25 @@ class GaugeDataset(Dataset):
             annotations.append(annotation_file)
 
         return data_samples, annotations
+
+
+"""
+# Alternative get item representation for built-in prediction models
+
+num_objs = len(annotations['annotation'])
+boxes = []
+area = []
+for i in range(num_objs):
+    bbox = annotations['annotation'][i]['bbox']
+    boxes.append([bbox[0], bbox[1], bbox[0] + bbox[2], bbox[1] + bbox[3]])
+    area.append(annotations['annotation'][i]['area'])
+
+target = {
+    'boxes': torch.as_tensor(boxes, dtype=torch.float32),
+    'area': torch.as_tensor(area, dtype=torch.float32),
+    'labels': torch.ones((num_objs,), dtype=torch.int64),
+    'is_crowd': torch.zeros((num_objs,), dtype=torch.int64),
+    'image_id': annotations['image']['id'],
+    'prediction': annotations['annotation'][0]['class_values'][0]
+}
+"""

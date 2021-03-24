@@ -19,7 +19,7 @@ class IntersectionOverUnionLoss:
         assert reduction in ['sum', 'mean']
         self.__reduction = reduction
 
-    def __call__(self, a, b):
+    def __call__(self, a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
         intersection = IntersectionOverUnionLoss.__intersection__(a, b)
 
         # Area of boxes W * H
@@ -37,7 +37,7 @@ class IntersectionOverUnionLoss:
             return iou.sum()
 
     @staticmethod
-    def __intersection__(a, b):
+    def __intersection__(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
         # Stack pair-wise coordinates
         min_x = torch.stack([a[:, 0], b[:, 0]])
         max_x = torch.stack([a[:, 0] + a[:, 2], b[:, 0] + b[:, 2]])
