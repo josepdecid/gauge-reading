@@ -126,3 +126,10 @@ There are a bunch of ideas that I had in mind to to but I wasn't unable to due t
     - Train independently the bounding box prediction task and value prediction or do it all together as a combined loss.
     - Alternative backbone models, not only the smaller resnet.
 - Further data augmentation techniques with simulation environments.
+- Better structure for the Trainer class or use already-existing solutions such as PyTorch-Lightning
+    - General trainer class, implemented by children classes to train the model for a sub-task.
+    - Generalize for an arbitrary number of models.
+- Better parametrization of the training process:
+    - Model to choose
+    - Extract transformations to allow parametrization from outside
+    - Use Hydra or some similar solution to handle the possibilities within configuration files.
